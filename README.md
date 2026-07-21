@@ -1,8 +1,16 @@
 # Vaultyra
 
-Vaultyra is a private, self-hosted financial command center. This first product slice includes a responsive dashboard, account management, manual balances, spreadsheet intake, historical and user-driven forecasts, and security UX.
+Vaultyra is a private, self-hosted financial command center. It includes PostgreSQL persistence, isolated user accounts, password authentication, authenticator 2FA with recovery codes, persistent financial accounts, transaction APIs, projections, and Docker deployment.
 
 ## Run with Docker
+
+```bash
+cp .env.example .env
+openssl rand -hex 36
+openssl rand -hex 48
+```
+
+Put the first generated value in `.env` as `POSTGRES_PASSWORD`, the second as `BETTER_AUTH_SECRET`, and set `BETTER_AUTH_URL` to the exact URL used to open Vaultyra. Then run:
 
 ```bash
 docker compose up --build
@@ -52,6 +60,12 @@ For Ubuntu, use Docker's Ubuntu repository instructions instead of substituting 
 mkdir -p /opt/vaultyra
 git clone https://github.com/SleepingPanda4/Vaultyra.git /opt/vaultyra
 cd /opt/vaultyra
+cp .env.example .env
+POSTGRES_PASSWORD=$(openssl rand -hex 36)
+BETTER_AUTH_SECRET=$(openssl rand -hex 48)
+sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|" .env
+sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET|" .env
+sed -i "s|^BETTER_AUTH_URL=.*|BETTER_AUTH_URL=http://$(hostname -I | awk '{print $1}'):12450|" .env
 docker compose up -d --build
 docker compose ps
 ```
@@ -78,7 +92,7 @@ For internet access, place Vaultyra behind a trusted HTTPS reverse proxy and do 
 
 ## Product boundary
 
-The current build is a polished interactive prototype. Before storing real financial data, add a server-side database, audited authentication, mandatory WebAuthn/TOTP 2FA, encrypted provider credentials, CSRF protection, rate limiting, backups, and provider-specific read-only OAuth/API integrations. Never expose Fidelity, Coinbase, Pionex, or bank secrets in browser code.
+Vaultyra now stores user and financial data in PostgreSQL and uses server-validated sessions plus mandatory TOTP enrollment. Provider synchronization remains disabled until provider credentials and encryption keys are configured; never expose Fidelity, Coinbase, Pionex, or bank secrets in browser code. Put the service behind HTTPS before exposing it outside a trusted network, keep offline database backups, and protect the `.env` file.
 
 ## Recommended implementation sequence
 

@@ -1,4 +1,21 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: vaultyra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vaultyra
+      POSTGRES_USER: vaultyra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - vaultyra-postgres:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/001-vaultyra.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vaultyra -d vaultyra"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   vaultyra:
     build: .
     container_name: vaultyra
@@ -9,8 +26,11 @@ services:
       NODE_ENV: production
       PORT: 12450
       HOSTNAME: 0.0.0.0
-    volumes:
-      - vaultyra-data:/app/data
-
+      DATABASE_URL: postgresql://vaultyra:${POSTGRES_PASSWORD}@postgres:5432/vaultyra
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:12450}
+    depends_on:
+      postgres:
+        condition: service_healthy
 volumes:
-  vaultyra-data:
+  vaultyra-postgres:

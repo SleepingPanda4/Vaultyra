@@ -6,3 +6,5 @@ work
 outputs
 .wrangler
 npm-debug.log
+.env
+.env.*
