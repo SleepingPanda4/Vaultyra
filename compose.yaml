@@ -4,9 +4,11 @@ services:
     container_name: vaultyra
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "12450:12450"
     environment:
       NODE_ENV: production
+      PORT: 12450
+      HOSTNAME: 0.0.0.0
     volumes:
       - vaultyra-data:/app/data
 
