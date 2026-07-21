@@ -95,7 +95,7 @@ export default function Home() {
         <div className="brand"><img src="/vaultyra-logo.png" alt="Vaultyra" /><div><strong>Vaultyra</strong><span>Personal vault</span></div></div>
         <nav aria-label="Main navigation">
           <button className="nav-item active"><Icon name="overview" />Overview</button>
-          <button className="nav-item" onClick={() => document.getElementById("accounts")?.scrollIntoView({ behavior: "smooth" })}><Icon name="accounts" />Accounts</button>
+          <button className="nav-item" onClick={() => window.location.href = "/accounts"}><Icon name="accounts" />Accounts</button>
           <button className="nav-item" onClick={() => notify("Transactions are ready for bank sync data")}><Icon name="activity" />Transactions</button>
           <button className="nav-item" onClick={() => document.getElementById("projection")?.scrollIntoView({ behavior: "smooth" })}><Icon name="plan" />Planning</button>
           <button className="nav-item" onClick={() => setDrawer("import")}><Icon name="import" />Import history</button>
