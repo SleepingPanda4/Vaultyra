@@ -56,6 +56,13 @@ docker compose up -d --build
 docker compose ps
 ```
 
+If an earlier image build failed during dependency installation, rebuild without its cached layers:
+
+```bash
+docker compose build --no-cache
+docker compose up -d
+```
+
 Open `http://LXC-IP-ADDRESS:12450`. Allow TCP port `12450` through the Proxmox, LXC, and network firewalls only for the networks that should reach Vaultyra.
 
 ### 4. Update or inspect the service
