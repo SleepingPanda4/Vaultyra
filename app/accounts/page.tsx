@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { usePlaidLink } from "react-plaid-link";
 import { authClient } from "../../lib/auth-client";
 
 type Account = { id: string; name: string; institution: string; type: string; balance: number; currency: string; accent: string; provider: string };
@@ -24,6 +25,23 @@ export default function AccountsPage() {
   const [name, setName] = useState("");
   const [type, setType] = useState("Checking");
   const [balance, setBalance] = useState("");
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+
+  const { open: openPlaid, ready: plaidReady } = usePlaidLink({
+    token: linkToken,
+    onSuccess: async (publicToken, metadata) => {
+      setConnecting(true); setError("");
+      const response = await fetch("/api/plaid/exchange", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ publicToken, institutionName: metadata.institution?.name, selectedAccountIds: metadata.accounts.map((account) => account.id) }),
+      });
+      if (!response.ok) { const body = await response.json().catch(() => ({})); setError(body.error ?? "The bank connection could not be saved."); }
+      else { await loadAccounts(); setShowForm(false); }
+      setConnecting(false); setLinkToken(null);
+    },
+    onExit: () => { setConnecting(false); setLinkToken(null); },
+  });
 
   const loadAccounts = useCallback(async () => {
     const response = await fetch("/api/accounts");
@@ -37,6 +55,8 @@ export default function AccountsPage() {
     if (session) loadAccounts().catch((reason) => { setError(reason.message); setLoading(false); });
     if (!isPending && !session) window.location.href = "/";
   }, [session, isPending, loadAccounts]);
+
+  useEffect(() => { if (linkToken && plaidReady) openPlaid(); }, [linkToken, plaidReady, openPlaid]);
 
   const totals = useMemo(() => ({
     assets: accounts.filter((account) => !account.type.toLowerCase().includes("credit") && !account.type.toLowerCase().includes("loan")).reduce((sum, account) => sum + account.balance, 0),
@@ -55,6 +75,14 @@ export default function AccountsPage() {
     const account = await response.json();
     setAccounts((current) => [...current, account]);
     setInstitution(""); setName(""); setBalance(""); setType("Checking"); setShowForm(false); setSaving(false);
+  }
+
+  async function connectBank() {
+    setConnecting(true); setError("");
+    const response = await fetch("/api/plaid/link-token", { method: "POST" });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) { setError(body.error ?? "Bank connection is unavailable."); setConnecting(false); return; }
+    setLinkToken(body.linkToken);
   }
 
   async function removeAccount(account: Account) {
@@ -85,6 +113,6 @@ export default function AccountsPage() {
       </section>
     </section>
 
-    {showForm && <div className="modal-backdrop" onMouseDown={() => setShowForm(false)}><form className="modal bank-form" onSubmit={addAccount} onMouseDown={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowForm(false)}>×</button><span className="modal-kicker">ADD TO YOUR VAULT</span><h2>Add a bank account</h2><p>Enter the account’s current balance. Do not enter routing numbers, full account numbers, passwords, or PINs.</p><label>Bank or institution<input value={institution} onChange={(event) => setInstitution(event.target.value)} placeholder="e.g. Chase, Fidelity, Local Credit Union" maxLength={100} required /></label><label>Account nickname<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Everyday Checking" maxLength={100} required /></label><label>Account type<select value={type} onChange={(event) => setType(event.target.value)}>{accountTypes.map((item) => <option key={item}>{item}</option>)}</select></label><label>Current balance<input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label><div className="bank-form-note">For credit cards or loans, enter the amount owed as a negative value.</div>{error && <div className="account-error">{error}</div>}<button className="primary wide" disabled={saving}>{saving ? "Saving securely…" : "Save bank account"}</button></form></div>}
+    {showForm && <div className="modal-backdrop" onMouseDown={() => setShowForm(false)}><form className="modal bank-form" onSubmit={addAccount} onMouseDown={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={() => setShowForm(false)}>×</button><span className="modal-kicker">ADD TO YOUR VAULT</span><h2>Add an account</h2><p>Connect securely for automatic daily updates, or enter a balance manually.</p><button type="button" className="plaid-connect" onClick={connectBank} disabled={connecting}><span>◇</span><div><strong>{connecting ? "Opening secure connection…" : "Connect a bank securely"}</strong><small>Sign in with your bank through Plaid and choose which accounts to track.</small></div><b>Connect →</b></button>{error && <div className="account-error">{error}</div>}<div className="divider"><span>or add manually</span></div><label>Bank or institution<input value={institution} onChange={(event) => setInstitution(event.target.value)} placeholder="e.g. Chase, Fidelity, Local Credit Union" maxLength={100} required /></label><label>Account nickname<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Everyday Checking" maxLength={100} required /></label><label>Account type<select value={type} onChange={(event) => setType(event.target.value)}>{accountTypes.map((item) => <option key={item}>{item}</option>)}</select></label><label>Current balance<input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="decimal" placeholder="0.00" required /></label><div className="bank-form-note">Vaultyra never sees or stores your bank password. For manual credit cards or loans, enter the amount owed as a negative value.</div><button className="primary wide" disabled={saving}>{saving ? "Saving securely…" : "Save manual account"}</button></form></div>}
   </main>;
 }

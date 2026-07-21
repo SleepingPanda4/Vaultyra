@@ -9,7 +9,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - vaultyra-postgres:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/001-vaultyra.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vaultyra -d vaultyra"]
       interval: 5s
@@ -29,6 +28,29 @@ services:
       DATABASE_URL: postgresql://vaultyra:${POSTGRES_PASSWORD}@postgres:5432/vaultyra
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:12450}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?Set DATA_ENCRYPTION_KEY in .env}
+      PLAID_CLIENT_ID: ${PLAID_CLIENT_ID:-}
+      PLAID_SECRET: ${PLAID_SECRET:-}
+      PLAID_ENV: ${PLAID_ENV:-sandbox}
+      PLAID_WEBHOOK_URL: ${PLAID_WEBHOOK_URL:-}
+      PLAID_REDIRECT_URI: ${PLAID_REDIRECT_URI:-}
+      PLAID_LINK_CUSTOMIZATION: ${PLAID_LINK_CUSTOMIZATION:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  bank-sync:
+    build: .
+    container_name: vaultyra-bank-sync
+    restart: unless-stopped
+    command: ["sh", "-c", "pnpm migrate && while true; do pnpm sync:banks; sleep 86400; done"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vaultyra:${POSTGRES_PASSWORD}@postgres:5432/vaultyra
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?Set DATA_ENCRYPTION_KEY in .env}
+      PLAID_CLIENT_ID: ${PLAID_CLIENT_ID:-}
+      PLAID_SECRET: ${PLAID_SECRET:-}
+      PLAID_ENV: ${PLAID_ENV:-sandbox}
     depends_on:
       postgres:
         condition: service_healthy

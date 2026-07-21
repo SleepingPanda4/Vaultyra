@@ -8,9 +8,10 @@ Vaultyra is a private, self-hosted financial command center. It includes Postgre
 cp .env.example .env
 openssl rand -hex 36
 openssl rand -hex 48
+openssl rand -hex 32
 ```
 
-Put the first generated value in `.env` as `POSTGRES_PASSWORD`, the second as `BETTER_AUTH_SECRET`, and set `BETTER_AUTH_URL` to the exact URL used to open Vaultyra. Then run:
+Put the first generated value in `.env` as `POSTGRES_PASSWORD`, the second as `BETTER_AUTH_SECRET`, and the third as `DATA_ENCRYPTION_KEY`. Set `BETTER_AUTH_URL` to the exact URL used to open Vaultyra. Then run:
 
 ```bash
 docker compose up --build
@@ -63,8 +64,10 @@ cd /opt/vaultyra
 cp .env.example .env
 POSTGRES_PASSWORD=$(openssl rand -hex 36)
 BETTER_AUTH_SECRET=$(openssl rand -hex 48)
+DATA_ENCRYPTION_KEY=$(openssl rand -hex 32)
 sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|" .env
 sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET|" .env
+sed -i "s|^DATA_ENCRYPTION_KEY=.*|DATA_ENCRYPTION_KEY=$DATA_ENCRYPTION_KEY|" .env
 sed -i "s|^BETTER_AUTH_URL=.*|BETTER_AUTH_URL=http://$(hostname -I | awk '{print $1}'):12450|" .env
 docker compose up -d --build
 docker compose ps
@@ -78,6 +81,20 @@ docker compose up -d
 ```
 
 Open `http://LXC-IP-ADDRESS:12450`. Allow TCP port `12450` through the Proxmox, LXC, and network firewalls only for the networks that should reach Vaultyra.
+
+### Optional automatic bank connections
+
+Create a Plaid developer account and copy its client ID and secret into `.env`:
+
+```bash
+PLAID_CLIENT_ID=your-client-id
+PLAID_SECRET=your-sandbox-or-production-secret
+PLAID_ENV=sandbox
+PLAID_REDIRECT_URI=
+PLAID_LINK_CUSTOMIZATION=
+```
+
+Use `sandbox` while testing. In the Plaid Dashboard, create a Link customization with account selection enabled and put its name in `PLAID_LINK_CUSTOMIZATION`. Production connections require Plaid approval, `PLAID_ENV=production`, and an HTTPS URL registered with Plaid in `PLAID_REDIRECT_URI` for OAuth institutions. Vaultyra encrypts Plaid access tokens with `DATA_ENCRYPTION_KEY`; back up this key securely because linked accounts cannot be decrypted without it. The `bank-sync` container refreshes linked balances and transactions every 24 hours even when users are offline.
 
 ### 4. Update or inspect the service
 

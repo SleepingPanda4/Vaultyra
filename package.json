@@ -9,16 +9,20 @@
     "dev": "next dev -p 12450",
     "build": "next build",
     "start": "next start -p 12450",
+    "migrate": "node scripts/migrate.mjs",
+    "sync:banks": "tsx scripts/sync-banks.ts",
     "test": "pnpm run build",
     "lint": "eslint . --ignore-pattern .next"
   },
   "dependencies": {
     "better-auth": "^1.6.23",
     "next": "16.2.6",
+    "plaid": "^41.0.0",
     "pg": "^8.16.3",
     "qrcode.react": "^4.2.0",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "react-plaid-link": "^4.1.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.2.1",
@@ -29,6 +33,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "4.2.1",
+    "tsx": "^4.20.6",
     "typescript": "5.9.3"
   },
   "type": "module"

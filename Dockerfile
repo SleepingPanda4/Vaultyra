@@ -15,4 +15,4 @@ ENV PORT=12450
 RUN corepack enable
 COPY --from=build /app ./
 EXPOSE 12450
-CMD ["pnpm", "start"]
+CMD ["sh", "-c", "pnpm migrate && pnpm start"]
